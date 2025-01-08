@@ -15,7 +15,13 @@ async function startServer() {
     // TODO: Initialiser les connexions aux bases de données
     // TODO: Configurer les middlewares Express
     // TODO: Monter les routes
+    app.get('/', (req, res) => {
+      route.send('Hello, World!');
+    });
     // TODO: Démarrer le serveur
+    app.listen(config.port, () => {
+      console.log(`Server running on port ${config.port}`);
+    });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
