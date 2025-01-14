@@ -1,3 +1,5 @@
+//⛔j'avais un probléme de connexion internet c'est pour ca j'ai pas fait les commits separées
+
 // Question : Pourquoi créer un module séparé pour les connexions aux bases de données ?
 // Réponse : pour que les connexions aux bases de données permet de centraliser la logique de connexion, d'améliorer la réutilisation du code, et de simplifier la gestion des erreurs et de la maintenance.
 
@@ -10,65 +12,62 @@ const config = require('./env');
 
 let mongoClient, redisClient, db;
 
-// Connexion à MongoDB
 async function connectMongo() {
   try {
-    mongoClient = new MongoClient(config.mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    mongoClient = new MongoClient(config.mongoUri);
     await mongoClient.connect();
     db = mongoClient.db(config.mongoDbName);
-    console.log('Connecté à MongoDB');
+    console.log('Connected to MongoDB');
     return db;
   } catch (error) {
-    console.error('Erreur de connexion à MongoDB :', error);
-    process.exit(1); // Arrêt de l'application en cas d'erreur critique
+    console.error('MongoDB connection error:', error);
+    throw error;
   }
 }
 
-// Connexion à Redis
 async function connectRedis() {
   try {
-    redisClient = redis.createClient({ url: config.redisUri });
-    redisClient.on('error', (err) => console.error('Erreur Redis :', err));
+    redisClient = redis.createClient({
+      url: config.redisUri,
+    });
+
+    redisClient.on('error', (err) => console.error('Redis Client Error:', err));
     await redisClient.connect();
-    console.log('Connecté à Redis');
+    console.log('Connected to Redis');
     return redisClient;
   } catch (error) {
-    console.error('Erreur de connexion à Redis :', error);
-    process.exit(1); // Arrêt de l'application en cas d'erreur critique
+    console.error('Redis connection error:', error);
+    throw error;
   }
 }
 
-// Fermeture des connexions
-async function closeConnections() {
+async function closeMongo() {
   try {
     if (mongoClient) {
       await mongoClient.close();
-      console.log('Connexion MongoDB fermée');
-    }
-    if (redisClient) {
-      await redisClient.quit();
-      console.log('Connexion Redis fermée');
+      console.log('MongoDB connection closed');
     }
   } catch (error) {
-    console.error('Erreur lors de la fermeture des connexions :', error);
+    console.error('Error closing MongoDB connection:', error);
   }
 }
 
-// Écouter les signaux système pour une fermeture propre
-process.on('SIGINT', async () => {
-  console.log('Signal SIGINT reçu. Fermeture des connexions...');
-  await closeConnections();
-  process.exit(0);
-});
+async function closeRedis() {
+  try {
+    if (redisClient) {
+      await redisClient.quit();
+      console.log('Redis connection closed');
+    }
+  } catch (error) {
+    console.error('Error closing Redis connection:', error);
+  }
+}
 
-// Export des fonctions et clients
 module.exports = {
   connectMongo,
   connectRedis,
-  closeConnections,
+  closeMongo,
+  closeRedis,
   getMongoDb: () => db,
   getRedisClient: () => redisClient,
 };

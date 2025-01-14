@@ -1,3 +1,5 @@
+//⛔j'avais un probléme de connexion internet c'est pour ca j'ai pas fait les commits separées
+
 // Question: Quelle est la différence entre un contrôleur et une route ?
 // Réponse: Une route est responsable de mapper une URL à une fonction spécifique, tandis qu'un contrôleur contient la logique métier qui traite les données et gère les actions associées.
 
@@ -5,78 +7,178 @@
 // Réponse : Pour améliorer la maintenabilité, la réutilisation et la lisibilité du code.
 
 const { ObjectId } = require('mongodb');
+const db = require('../config/db');
 const mongoService = require('../services/mongoService');
+const redisService = require('../services/redisService');
 
-// Création d'un cours
-async function createCourse(req, res) {
+/* Courses collection
+{
+  _id: ObjectId("5f8d0f5b9d3e7a1b2c3d4e5f"),
+  title: "Introduction to Web Development",
+  description: "Learn the basics of HTML, CSS, and JavaScript",
+  instructor: "John Doe",
+  duration: 6, // in weeks
+  level: "Beginner",
+  enrollmentCount: 150,
+}
+*/
+
+async function getAllCourses(req, res) {
+  // TODO: Implémenter la récupération de tous les cours
+  // Utiliser les services pour la logique réutilisable
   try {
-    const { title, description, instructor } = req.body;
-
-    if (!title || !description || !instructor) {
-      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+    const cachedCourses = await redisService.getCachedData('courses');
+    if (cachedCourses) {
+      return res.json(cachedCourses);
     }
-
-    const course = {
-      title,
-      description,
-      instructor,
-      createdAt: new Date(),
-    };
-
-    const result = await mongoService.insertDocument('courses', course);
-    return res.status(201).json({
-      message: 'Cours créé avec succès.',
-      courseId: result.insertedId,
-    });
+    const courses = await mongoService.findMany('courses');
+    if (!courses) {
+      return res.status(404).json({ error: 'Courses not found' });
+    }
+    await redisService.cacheData('courses', courses, 60); // Cache for 1 minute
+    res.json(courses);
   } catch (error) {
-    console.error('Erreur lors de la création du cours :', error);
-    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+    console.error('Error getting all courses:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
-// Récupération d'un cours par son ID
+async function createCourse(req, res) {
+  // TODO: Implémenter la création d'un cours
+  // Utiliser les services pour la logique réutilisable
+  try {
+    const course = {
+      ...req.body,
+      enrollmentCount: 0,
+    };
+    const insertedCourse = await mongoService.insertOne('courses', course);
+    if (!insertedCourse) {
+      return res.status(400).json({ error: 'Failed to create course' });
+    }
+    await redisService.deleteCachedData('courses');
+    res.status(201).json({ _id: insertedCourse.insertedId, ...course });
+  } catch (error) {
+    console.error('Error creating course:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 async function getCourse(req, res) {
+  // TODO: Implémenter la récupération d'un cours
+  // Utiliser les services pour la logique réutilisable
   try {
     const courseId = req.params.id;
-
     if (!ObjectId.isValid(courseId)) {
-      return res.status(400).json({ message: 'ID invalide.' });
+      return res.status(400).json({ error: 'Invalid course ID' });
     }
-
-    const course = await mongoService.findDocumentById('courses', courseId);
-
+    const course = await mongoService.findOneById('courses', courseId);
     if (!course) {
-      return res.status(404).json({ message: "Le cours n'existe pas." });
+      return res.status(404).json({ error: 'Course not found' });
     }
-
-    return res.status(200).json(course);
+    res.json(course);
   } catch (error) {
-    console.error('Erreur lors de la récupération du cours :', error);
-    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+    console.error('Error getting course:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
-// Obtenir des statistiques sur les cours
-async function getCourseStats(req, res) {
+async function updateCourse(req, res) {
+  // TODO: Implémenter la mise à jour d'un cours
+  // Utiliser les services pour la logique réutilisable
   try {
-    const totalCourses = await mongoService.countDocuments('courses');
-
-    const stats = {
-      totalCourses,
-    };
-
-    return res.status(200).json(stats);
-  } catch (error) {
-    console.error(
-      'Erreur lors de la récupération des statistiques des cours :',
-      error
+    const courseId = req.params.id;
+    if (!ObjectId.isValid(courseId)) {
+      return res.status(400).json({ error: 'Invalid course ID' });
+    }
+    const course = req.body;
+    const updatedCourse = await mongoService.updateOne(
+      'courses',
+      courseId,
+      course
     );
-    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+    if (!updatedCourse) {
+      return res.status(400).json({ error: 'Failed to update course' });
+    }
+    await redisService.deleteCachedData('courses');
+    res.json({ _id: courseId, ...course });
+  } catch (error) {
+    console.error('Error updating course:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
+async function deleteCourse(req, res) {
+  // TODO: Implémenter la suppression d'un cours
+  // Utiliser les services pour la logique réutilisable
+  try {
+    const courseId = req.params.id;
+    if (!ObjectId.isValid(courseId)) {
+      return res.status(400).json({ error: 'Invalid course ID' });
+    }
+    const deletedCourse = await mongoService.deleteOne('courses', courseId);
+    if (!deletedCourse) {
+      return res.status(400).json({ error: 'Failed to delete course' });
+    }
+    await redisService.deleteCachedData('courses');
+    res.json({ _id: courseId });
+  } catch (error) {
+    console.error('Error deleting course:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function getCourseStats(req, res) {
+  // TODO: Implémenter la récupération des statistiques des cours
+  // Utiliser les services pour la logique réutilisable
+  try {
+    // Aggregate pipeline to get course stats
+    const pipeline = [
+      {
+        $group: {
+          _id: null,
+          totalCourses: { $sum: 1 },
+          averageDuration: { $avg: '$duration' },
+          totalEnrollments: { $sum: '$enrollmentCount' },
+          courses: {
+            $push: {
+              _id: '$_id',
+              title: '$title',
+              instructor: '$instructor',
+              duration: '$duration',
+              enrollmentCount: '$enrollmentCount',
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalCourses: 1,
+          averageDuration: 1,
+          totalEnrollments: 1,
+          courses: 1,
+        },
+      },
+    ];
+
+    const stats = await mongoService.aggregate('courses', pipeline);
+    if (!stats) {
+      return res.status(404).json({ error: 'Course stats not found' });
+    }
+    res.json(stats[0]);
+  } catch (error) {
+    console.error('Error getting course stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Export des contrôleurs
 module.exports = {
+  // TODO: Exporter les fonctions du contrôleur
+  getAllCourses,
   createCourse,
   getCourse,
+  updateCourse,
+  deleteCourse,
   getCourseStats,
 };

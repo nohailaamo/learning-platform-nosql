@@ -1,3 +1,5 @@
+//⛔j'avais un probléme de connexion internet c'est pour ca j'ai pas fait les commits separées
+
 // Question: Pourquoi est-il important de valider les variables d'environnement au démarrage ?
 // Réponse : Il est essentiel de valider les champs indispensables au bon fonctionnement du serveur sans erreur.
 // Question: Que se passe-t-il si une variable requise est manquante ?
@@ -8,30 +10,24 @@ dotenv.config();
 
 const requiredEnvVars = ['MONGODB_URI', 'MONGODB_DB_NAME', 'REDIS_URI'];
 
-// Validation des variables d'environnement
 function validateEnv() {
-  // TODO: Implémenter la validation
-  const dontExist = requiredEnvVars.filter((value) => !process.env[value]);
-  if (dontExist.length > 0) {
-    throw new Error(`Missing environment variables: ${dontExist.join(', ')}`);
+  const missingVars = requiredEnvVars.filter((key) => !process.env[key]);
+  if (missingVars.length > 0) {
+    throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
   }
-  // Si une variable manque, lever une erreur explicative
 }
+
 try {
   validateEnv();
-  console.log('all env variables are valid');
+  console.log('All environment variables are valid');
 } catch (e) {
   console.error('Failed to validate environment variables:', e.message);
   process.exit(1);
 }
 
 module.exports = {
-  mongodb: {
-    uri: process.env.MONGODB_URI,
-    dbName: process.env.MONGODB_DB_NAME,
-  },
-  redis: {
-    uri: process.env.REDIS_URI,
-  },
+  mongoUri: process.env.MONGODB_URI,
+  mongoDbName: process.env.MONGODB_DB_NAME,
+  redisUri: process.env.REDIS_URI,
   port: process.env.PORT || 3000,
 };

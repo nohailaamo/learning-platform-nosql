@@ -1,3 +1,5 @@
+//⛔j'avais un probléme de connexion internet c'est pour ca j'ai pas fait les commits separées
+
 // Question: Pourquoi séparer les routes dans différents fichiers ?
 // Réponse : Pour rendre le code plus modulaire, lisible et facile à maintenir.
 
@@ -9,8 +11,11 @@ const router = express.Router();
 const courseController = require('../controllers/courseController');
 
 // Routes pour les cours
-router.post('/', courseController.createCourse); // Ajouter un cours
+router.get('/', courseController.getAllCourses); // Récupérer tous les cours
+router.post('/', courseController.createCourse); // Créer un nouveau cours
+router.get('/stats', courseController.getCourseStats); // Obtenir les statistiques
 router.get('/:id', courseController.getCourse); // Récupérer un cours par ID
-router.get('/stats', courseController.getCourseStats); // Obtenir des statistiques sur les cours
+router.put('/:id', courseController.updateCourse); // Mettre à jour un cours
+router.delete('/:id', courseController.deleteCourse); // Supprimer un cours
 
 module.exports = router;
