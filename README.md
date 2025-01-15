@@ -73,6 +73,7 @@ npm start
 learning-platform/
 ├── src/
 │   ├── app.js                 # Point d'entrée de l'application
+│   ├── test.js                 # Test d'insertion
 │   ├── config/
 │   │   ├── env.js            # Configuration des variables d'environnement
 │   │   └── db.js             # Configuration des bases de données
@@ -85,6 +86,7 @@ learning-platform/
 │   └── services/
 │       ├── mongoService.js       # Services MongoDB
 │       └── redisService.js       # Services Redis
+|   |___screenshotsDataBase       # Screen de reussite de chaque etapes
 ├── .env                      # Variables d'environnement
 └── package.json             # Dépendances et scripts
 ```
